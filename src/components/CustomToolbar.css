@@ -1,0 +1,16 @@
+.ql-picker.ql-insertCustomTags {
+    width: 90px;
+}
+
+.ql-picker.ql-insertCustomTags .ql-picker-item::before,
+.ql-picker.ql-insertCustomTags .ql-picker-label::before {
+    content: 'Custom';
+}
+
+.ql-picker.ql-insertCustomTags [data-value='1']::before {
+    content: 'One';
+}
+
+.ql-picker.ql-insertCustomTags [data-value='2']::before {
+    content: 'Two';
+}

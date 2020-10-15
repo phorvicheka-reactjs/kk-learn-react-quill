@@ -4,6 +4,10 @@ import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
 
+global["markedWordClick"] = (markedWord) => {
+  alert("markedWordClick: " + markedWord);
+};
+
 ReactDOM.render(
   <React.StrictMode>
     <App />
