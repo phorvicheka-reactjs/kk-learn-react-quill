@@ -32,6 +32,77 @@ const EditorWithMarkedWordFeature = (props) => {
         setQuillRef(reactQuillRef.getEditor());
     }, [reactQuillRef]);
 
+    // Clipboard Module: Auto format on paste
+    useEffect(() => {
+        if (quillRef) {
+            console.log('--------------useEffect  [quillRef]-------------');
+            console.log(quillRef);
+            quillRef.clipboard.addMatcher(Node.TEXT_NODE, function (
+                node,
+                delta
+            ) {
+                console.log('-------------------------delta:', delta);
+                console.log('-------------------------node:', node);
+                console.log('-------------------------node.data:', node.data);
+                const text = node.data;
+                const lookupWords = text.match(/\w+|\s+|[^\s\w]+/g);
+                console.log(lookupWords);
+                console.log(text.length);
+                //const newDelta = new Delta().retain(0).delete(text.length);
+                const newDelta = new Delta();
+                lookupWords.forEach((lookupWord, index) => {
+                    console.log(index);
+                    if (lookupWord.match(/\w+/)) {
+                        // do lookup work in keyWords
+                        const keyWords = ['cold', 'patient'];
+                        if (keyWords.includes(lookupWord)) {
+                            newDelta.insert(lookupWord, {
+                                markedWord: {
+                                    color: 'green',
+                                    word: lookupWord,
+                                },
+                            });
+                        } else {
+                            newDelta.insert(lookupWord, {
+                                markedWord: false,
+                                background: false,
+                            });
+                        }
+                    } else {
+                        newDelta.insert(lookupWord, {
+                            markedWord: false,
+                            background: false,
+                        });
+                    }
+                });
+                /* var regex = /https?:\/\/[^\s]+/g;
+                if (typeof node.data !== 'string') return;
+                var matches = node.data.match(regex);
+
+                if (matches && matches.length > 0) {
+                    var ops = [];
+                    var str = node.data;
+                    matches.forEach(function (match) {
+                        var split = str.split(match);
+                        var beforeLink = split.shift();
+                        ops.push({ insert: beforeLink });
+                        ops.push({
+                            insert: match,
+                            attributes: { link: match },
+                        });
+                        str = split.join(match);
+                    });
+                    ops.push({ insert: str });
+                    delta.ops = ops;
+                } */
+                console.log('-------------------------newDelta:', newDelta);
+
+                //return delta;
+                return newDelta;
+            });
+        }
+    }, [quillRef]);
+
     const handleOnChange = (content, delta, source, editor) => {
         setEditorHtml(content);
 
@@ -59,7 +130,6 @@ const EditorWithMarkedWordFeature = (props) => {
         console.log('>>editor html: ', editorHtml);
         console.log('>>content: ', content);
 
-
         /**
          * ================================================================================================
          *  Split texts and lOOP ALL (support when typing, and can use for when text is passed or changed)
@@ -68,37 +138,69 @@ const EditorWithMarkedWordFeature = (props) => {
         const text = editor.getText();
         console.log('>>text: ', text);
         console.log('>>text.length: ', text.length);
-        let pos = editor.getSelection().index;
-        if (
+        let pos;
+        // editor.getSelection(), when user pasts text
+        if (editor.getSelection()) {
+            pos = editor.getSelection().index;
+        } else {
+            pos = text.length;
+        }
+
+        // Search for the current typing word's beginning and end.
+        const left = text.slice(0, pos).search(/\S+$/);
+        const right = text.slice(pos).search(/\s/);
+        let currentTypingWord = {
+            startIndex: left,
+            endIndex: right + pos,
+            word: text.slice(left, right + pos),
+        };
+        console.log('left: ', left);
+        console.log('right: ', right);
+        console.log(currentTypingWord);
+        console.log(currentTypingWord.word.length);
+        console.log(
+            '>> Current Typing Word Format: ',
+            quillRef.getFormat(
+                currentTypingWord.startIndex,
+                currentTypingWord.word.length
+            )
+        );
+        console.log(
+            '>> Current contents: ',
+            quillRef.getContents(
+                currentTypingWord.startIndex,
+                currentTypingWord.word.length
+            )
+        );
+
+        // when user delete letter
+        /* if (
             delta.ops.length === 2 &&
             delta.ops[0].retain &&
             delta.ops[1].delete
         ) {
-            // Search for the word's beginning and end.
-            const left = text.slice(0, pos).search(/\S+$/);
-            const right = text.slice(pos).search(/\s/);
-            let currentTypingWord = {
-                startIndex: left,
-                endIndex: right + pos,
-                word: text.slice(left, right + pos),
-            };
-            console.log('left: ', left);
-            console.log('right: ', right);
-            // Return the word, using the located bounds to extract it from the string.
-            console.log(currentTypingWord);
-            console.log(currentTypingWord.word.length);
             quillRef.removeFormat(
                 currentTypingWord.startIndex,
                 currentTypingWord.word.length
             );
-        }
+        } */
 
+        // when user input or delete letter
         if (
-            delta.ops.length === 2 &&
-            delta.ops[0].retain &&
-            delta.ops[1].insert &&
-            source !== Quill.sources.API
+            // when insert the begining of the text area
+            (delta.ops.length === 1 &&
+                (delta.ops[0].insert || delta.ops[0].delete) &&
+                source === Quill.sources.USER) ||
+            // when insert or delete letter
+            (delta.ops.length === 2 &&
+                delta.ops[0].retain &&
+                (delta.ops[1].insert || delta.ops[1].delete) &&
+                source === Quill.sources.USER)
         ) {
+            quillRef.removeFormat(
+                currentTypingWord.startIndex,
+                currentTypingWord.word.length
+            );
             // https://stackoverflow.com/questions/40881365/split-a-string-into-an-array-of-words-punctuation-and-spaces-in-javascript
             const lookupWords = text.match(/\w+|\s+|[^\s\w]+/g);
             console.log(lookupWords);
@@ -136,28 +238,44 @@ const EditorWithMarkedWordFeature = (props) => {
 
             // https://github.com/quilljs/quill/issues/1940
             setImmediate(() => {
-                if (/\r|\n|\t$/.test(delta.ops[1].insert)) {
+                if (
+                    delta.ops.length === 2 &&
+                    delta.ops[1].insert &&
+                    /\r|\n|\t$/.test(delta.ops[1].insert)
+                ) {
                     pos = pos + 1;
                 }
                 quillRef.updateContents(newDelta, Quill.sources.API);
-                quillRef.setSelection(pos, 0, Quill.sources.USER);
+                quillRef.setSelection(pos, 0, Quill.sources.API);
             });
         }
 
-
         /**
          * ===========================================================================
-         *  Get the current typing word, and checking (support both when typing)
-         *  TODO: Fixing
+         *  Get the current typing word, and checking (support when typing)
          * ===========================================================================
          */
-        /* 
+
         // when typing, problem at the first marked text
-        const text = editor.getText();
-        let pos = editor.getSelection().index;
-        // Search for the word's beginning and end.
-        const left = text.slice(0, pos).search(/\S+$/);
+        /* const text = editor.getText();
+        let pos;
+        // editor.getSelection(), when user pasts text
+        if (editor.getSelection()) {
+            pos = editor.getSelection().index;
+        } else {
+            pos = text.length;
+        }
+        // Search for the current typing word's beginning and end.
+        let left = text.slice(0, pos).search(/\S+$/);
         const right = text.slice(pos).search(/\s/);
+        if (left === -1) {
+            // when type in the begining of the input text area, left set to 0
+            left =
+                text.slice(0, pos).search(/\s$/) === -1
+                    ? 0
+                    : text.slice(0, pos).search(/\s$/);
+            console.log('***new left: ', left);
+        }
         let currentTypingWord = {
             startIndex: left,
             endIndex: right + pos,
@@ -165,26 +283,39 @@ const EditorWithMarkedWordFeature = (props) => {
         };
         console.log('left: ', left);
         console.log('right: ', right);
-        // Return the word, using the located bounds to extract it from the string.
         console.log(currentTypingWord);
         console.log(currentTypingWord.word.length);
-        if (
-            delta.ops.length === 2 &&
-            delta.ops[0].retain &&
-            delta.ops[1].delete
-        ) {
-            quillRef.removeFormat(
+        console.log(
+            '>> Current Typing Word Format: ',
+            quillRef.getFormat(
                 currentTypingWord.startIndex,
                 currentTypingWord.word.length
-            );
-        }
+            )
+        );
 
+        // when user delete letter
+        // if (
+        //     delta.ops.length === 2 &&
+        //     delta.ops[0].retain &&
+        //     delta.ops[1].delete
+        // ) {
+        //     quillRef.removeFormat(
+        //         currentTypingWord.startIndex,
+        //         currentTypingWord.word.length
+        //     );
+        // }
+
+        // when user input or delete letter
         if (
-            currentTypingWord.word.length &&
-            delta.ops.length === 2 &&
-            delta.ops[0].retain &&
-            delta.ops[1].insert &&
-            source !== Quill.sources.API
+            // when insert the begining of the text area
+            (delta.ops.length === 1 &&
+                (delta.ops[0].insert || delta.ops[0].delete) &&
+                source === Quill.sources.USER) ||
+            // when insert or delete letter
+            (delta.ops.length === 2 &&
+                delta.ops[0].retain &&
+                (delta.ops[1].insert || delta.ops[1].delete) &&
+                source === Quill.sources.USER)
         ) {
             quillRef.removeFormat(
                 currentTypingWord.startIndex,
@@ -192,97 +323,43 @@ const EditorWithMarkedWordFeature = (props) => {
             );
             // do lookup work in keyWords
             const keyWords = ['cold', 'patient'];
-            if (keyWords.includes(currentTypingWord.word)) {
-                let selection = {
-                    index: currentTypingWord.startIndex,
-                    length: 0,
-                };
-                var newDelta = new Delta()
-                    .retain(selection.index)
-                    .delete(currentTypingWord.word.length)
-                    .insert(currentTypingWord.word, {
-                        markedWord: {
-                            color: 'green',
-                            word: currentTypingWord.word,
-                        },
-                    })
-                    .insert(' ');
-                console.log('******************');
-                console.log(newDelta);
-                console.log(Quill.sources.API);
-                quillRef.updateContents(newDelta, Quill.sources.API);
-                console.log(quillRef.getContents());
-                
-                    quillRef.setSelection(
-                        currentTypingWord.startIndex +
-                            currentTypingWord.word.length +
-                            1,
-                        0,
-                        Quill.sources.USER
-                    );
+            const lookupWord = currentTypingWord.word;
+            console.log('>> currentTypingWord: ', currentTypingWord);
+            console.log('>> lookupWord: ', lookupWord);
+            const newDelta = new Delta()
+                .retain(currentTypingWord.startIndex)
+                .delete(lookupWord.length);
+            if (keyWords.includes(lookupWord)) {
+                newDelta.insert(lookupWord, {
+                    markedWord: {
+                        color: 'green',
+                        word: lookupWord,
+                    },
+                });
+            } else {
+                newDelta.insert(lookupWord, {
+                    markedWord: false,
+                    background: false,
+                });
             }
-        } */
 
-        /* if (
-            delta.ops.length === 2 &&
-            delta.ops[0].retain &&
-            isWhitespace(delta.ops[1].insert)
-        ) {
-            console.log(delta.ops[1].insert.length);
-            const text = editor.getText();
-            console.log(text);
-            let pos = editor.getSelection().index;
-            if (delta.ops[1].insert === ' ') {
-                pos = pos - 1;
-            }
-            // Search for the word's beginning and end.
-            const left = text.slice(0, pos).search(/\S+$/);
-            const right = text.slice(pos).search(/\s/);
-            let currentTypingWord = {
-                startIndex: left,
-                endIndex: right + pos,
-                word: text.slice(left, right + pos),
-            };
-            if (right === -1) {
-                currentTypingWord = {
-                    startIndex: left,
-                    endIndex: pos,
-                    word: text.slice(left, pos),
-                };
-            }
-            console.log('left: ', left);
-            console.log('right: ', right);
-            // Return the word, using the located bounds to extract it from the string.
-            console.log(currentTypingWord);
-            console.log(currentTypingWord.word.length);
-            quillRef.removeFormat(
-                currentTypingWord.startIndex,
-                currentTypingWord.word.length
-            );
+            console.log('******************');
+            console.log('editor getContents: ', editor.getContents());
+            console.log(newDelta);
 
-            if (currentTypingWord.word.length) {
-                // do lookup work in keyWords
-                const keyWords = ['cold', 'patient'];
-                let ops = [];
-                if (keyWords.includes(currentTypingWord.word)) {
-                    let selection = {
-                        index: currentTypingWord.startIndex,
-                        length: 0,
-                    };
-                    var newDelta = new Delta()
-                        .retain(selection.index)
-                        .delete(currentTypingWord.word.length)
-                        .insert(currentTypingWord.word, {
-                            markedWord: {
-                                color: 'green',
-                                word: currentTypingWord.word,
-                            },
-                        });
-                    console.log('******************');
-                    console.log(newDelta);
-                    quillRef.updateContents(newDelta, 'user');
+            // https://github.com/quilljs/quill/issues/1940
+            setImmediate(() => {
+                // if the insert text is enter character
+                if (
+                    delta.ops.length === 2 &&
+                    delta.ops[1].insert &&
+                    /\r|\n|\t$/.test(delta.ops[1].insert)
+                ) {
+                    pos += 1;
                 }
-            }
+                quillRef.updateContents(newDelta, Quill.sources.API);
+                quillRef.setSelection(pos, 0, Quill.sources.API);
+            });
         } */
     };
 

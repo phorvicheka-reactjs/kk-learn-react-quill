@@ -11,6 +11,7 @@ export class MarkedWord extends Inline {
         let node = super.create(value);
         node.setAttribute("data-id", id);
         node.style.backgroundColor = color;
+        node.style.cursor = "pointer";
         node.dataset.id = id;
         node.dataset.word = word;
         node.addEventListener('click', function(ev) {
