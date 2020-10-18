@@ -123,6 +123,10 @@ const CustomFormatHighlight = () => {
         var range = quillRef.getSelection();
         let position = range ? range.index : 0;
         quillRef.insertText(position, 'Hello, World! ');
+        quillRef.insertText(position+'Hello, World! '.length, 'Hello, World! ', 'highlight', {
+            color: 'blue',
+            id: '1',
+        });
     };
 
     const handleClickHl = () => {

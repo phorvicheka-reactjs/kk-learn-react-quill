@@ -8,11 +8,16 @@ import CustomFormatHighlight from "./components/CustomFormatHighlight";
 import ReactQuillEvents from "./components/ReactQuillEvents";
 import EditorWithPollFeature from "./components/EditorWithPollFeature";
 import EditorWithMarkedWordFeature from "./components/EditorWithMarkedWordFeature";
+import EditorWithMarkedWordReactFeature from "./components/EditorWithMarkedWordReactFeature";
 
 export default function App() {
   return (
     <div className="App">
+      <h1>EditorWithMarkedWordReactFeature</h1>
+      <h3>NOT WORKING WITH INLINE BLOT FOR RENDER REACT COMPONENT</h3>
+      <EditorWithMarkedWordReactFeature />
       <h1>EditorWithMarkedWordFeature</h1>
+      <h3>WORKING WITH CUSTOM FORMAT IN BLOT AND GLOBAL EVENT HANDLER METHOD</h3>
       <EditorWithMarkedWordFeature />
       <h1>EditorWithPollFeature</h1>
       <EditorWithPollFeature />
