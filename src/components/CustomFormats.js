@@ -22,8 +22,9 @@ Quill.register("formats/background", MarkBlot); */
  * Editor component with default and custom formats
  */
 const CustomFormats = () => {
+    
     const toolbarOptions = [
-        ['bold' /* , "italic", "underline", "strike" */], // toggled buttons
+        ['bold', "italic" /*, "underline", "strike" */], // toggled buttons
         /* ["blockquote", "code-block"],
 
     [{ header: 1 }, { header: 2 }], // custom button values
@@ -49,7 +50,7 @@ const CustomFormats = () => {
         toolbar: toolbarOptions,
     };
 
-    const formats = ['bold', 'background']; // add custom format name + any built-in formats you need
+    const formats = ['bold', 'italic', 'background']; // add custom format name + any built-in formats you need
 
     const [text, setText] = useState('');
 

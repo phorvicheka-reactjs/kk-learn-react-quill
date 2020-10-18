@@ -23,8 +23,10 @@ export default function App() {
       <EditorWithPollFeature />
       <h1>ReactQuillEvents</h1>
       <ReactQuillEvents />
-      <h1>QuillQuickStart</h1>
-      <QuillQuickStart />
+      <h1>QuillQuickStart - snow theme</h1>
+      <QuillQuickStart theme="snow" />
+      <h1>QuillQuickStart - bubble theme</h1>
+      <QuillQuickStart theme="bubble"/>
       <h1>DefaultToolbar</h1>
       <DefaultToolbar />
       <h1>CustomToolbar</h1>

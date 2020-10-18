@@ -128,7 +128,8 @@ const EditorWithMarkedWordFeature = (props) => {
         );
 
         console.log('>>editor html: ', editorHtml);
-        console.log('>>content: ', content);
+        console.log('>>content: ');
+        console.log(content);
 
         /**
          * ================================================================================================
@@ -166,12 +167,12 @@ const EditorWithMarkedWordFeature = (props) => {
             )
         );
         console.log(
-            '>> Current contents: ',
-            quillRef.getContents(
-                currentTypingWord.startIndex,
-                currentTypingWord.word.length
-            )
+            '>> Current contents: ', 
         );
+        console.log(quillRef.getContents(
+            currentTypingWord.startIndex,
+            currentTypingWord.word.length
+        ))
 
         // when user delete letter
         /* if (

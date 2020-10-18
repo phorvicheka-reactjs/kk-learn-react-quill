@@ -96,6 +96,46 @@ const CustomFormatHighlight = () => {
         attachQuillRefs();
     }, [reactQuillRef]);
 
+    // Clipboard Module: Auto format links on paste
+    useEffect(() => {
+        if (quillRef) {
+            console.log('--------------useEffect  [quillRef]-------------');
+            console.log(quillRef);
+            quillRef.clipboard.addMatcher(Node.TEXT_NODE, function (
+                node,
+                delta
+            ) {
+                console.log('-------------------------delta:', delta);
+                console.log('-------------------------node:', node);
+                console.log('-------------------------node.data:', node.data);
+
+                var regex = /https?:\/\/[^\s]+/g;
+                if (typeof node.data !== 'string') return;
+                var matches = node.data.match(regex);
+
+                if (matches && matches.length > 0) {
+                    var ops = [];
+                    var str = node.data;
+                    matches.forEach(function (match) {
+                        var split = str.split(match);
+                        var beforeLink = split.shift();
+                        ops.push({ insert: beforeLink });
+                        ops.push({
+                            insert: match,
+                            attributes: { link: match },
+                        });
+                        str = split.join(match);
+                    });
+                    ops.push({ insert: str });
+                    delta.ops = ops;
+                }
+                console.log('-------------------------newDelta:', delta);
+
+                return delta;
+            });
+        }
+    }, [quillRef]);
+
     const attachQuillRefs = () => {
         if (
             reactQuillRef == null ||
@@ -123,10 +163,15 @@ const CustomFormatHighlight = () => {
         var range = quillRef.getSelection();
         let position = range ? range.index : 0;
         quillRef.insertText(position, 'Hello, World! ');
-        quillRef.insertText(position+'Hello, World! '.length, 'Hello, World! ', 'highlight', {
-            color: 'blue',
-            id: '1',
-        });
+        quillRef.insertText(
+            position + 'Hello, World! '.length,
+            'Hello, World! ',
+            'highlight',
+            {
+                color: 'blue',
+                id: '1',
+            }
+        );
     };
 
     const handleClickHl = () => {
